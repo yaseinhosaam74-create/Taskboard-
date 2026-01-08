@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Taskboard  </title>
+    <link rel="icon" tybe="image/jpg" href="logo.jpg">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary: #6c5ce7;
+            --work-bg: #ffeaa7;
+            --study-bg: #81ecec;
+            --personal-bg: #fab1a0;
+            --glass: rgba(255, 255, 255, 0.75);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Cairo', sans-serif; }
+
+        body {
+            background: linear-gradient(45deg, #a29bfe, #74b9ff, #fab1a0);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .main-container {
+            width: 100%;
+            max-width: 500px;
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 30px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.1);
+        }
+
+        .header { text-align: center; margin-bottom: 30px; }
+        .header h1 { color: #2d3436; font-size: 1.8rem; font-weight: 700; }
+
+        /* منطقة الإدخال المطورة */
+        .input-card {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 25px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+        }
+
+        .input-card input, .input-card select {
+            width: 100%;
+            border: 2px solid #f1f2f6;
+            padding: 12px 15px;
+            border-radius: 15px;
+            margin-bottom: 15px;
+            transition: 0.3s;
+            outline: none;
+        }
+
+        .input-card input:focus { border-color: var(--primary); }
+
+        .btn-add {
+            width: 100%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.3s;
+            box-shadow: 0 10px 20px rgba(108, 92, 231, 0.3);
+        }
+
+        .btn-add:active { transform: scale(0.95); }
+
+        /* قائمة المهام */
+        .task-card {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: 0.4s;
+            animation: slideIn 0.4s ease-out;
+            border-right: 8px solid var(--primary);
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .task-content h3 { font-size: 1.1rem; color: #2d3436; margin-bottom: 5px; }
+        .task-content span { font-size: 0.8rem; color: #636e72; }
+        .category-badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 8px;
+            font-size: 0.7rem;
+            margin-top: 5px;
+            font-weight: bold;
+        }
+
+        .actions { display: flex; gap: 10px; }
+        .btn-icon {
+            width: 40px; height: 40px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; border: none; transition: 0.3s;
+        }
+        .btn-done { background: #e3fcef; color: #00b894; }
+        .btn-delete { background: #ffeef0; color: #ff7675; }
+
+        .completed { opacity: 0.5; filter: grayscale(1); }
+    </style>
+</head>
+<body>
+
+<div class="main-container">
+    <div class="header">
+        <h1><i class="fa-solid fa-wand-magic-sparkles" style="color: var(--primary);"></i> Taskboard  </h1>
+    </div>
+
+    <div class="input-card">
+        <input type="text" id="taskTitle" placeholder="  Name and content of the task ...">
+        <select id="taskType">
+            <option value="عمل">work</option>
+            <option value="دراسة">📚 school assignment</option>
+            <option value="شخصي">🏠 subjective </option>
+        </select>
+        <input type="datetime-local" id="taskTime">
+        
+        <label style="font-size: 0.8rem; color: #888; margin-bottom: 5px; display: block;">  (Optional) alarm sound:</label>
+        <input type="file" id="audioFile" accept="audio/*">
+        
+        <button class="btn-add" onclick="addTask()">Assigning the task  </button>
+    </div>
+
+    <div id="taskList"></div>
+</div>
+
+<script>
+    let tasks = [];
+    let customSoundBase64 = null;
+
+    // تحويل الملف الصوتي لـ Base64 لتخزينه في المتصفح
+    document.getElementById('audioFile').addEventListener('change', function(e) {
+        const reader = new FileReader();
+        reader.onload = function() { customSoundBase64 = reader.result; };
+        reader.readAsDataURL(e.target.files[0]);
+    });
+
+    function addTask() {
+        const title = document.getElementById('taskTitle').value;
+        const type = document.getElementById('taskType').value;
+        const time = document.getElementById('taskTime').value;
+
+        if(!title || !time) return;
+
+        const task = {
+            id: Date.now(),
+            title,
+            type,
+            time: new Date(time).getTime(),
+            sound: customSoundBase64,
+            done: false,
+            notified: false
+        };
+
+        tasks.push(task);
+        render();
+        requestPermission();
+    }
+
+    function render() {
+        const container = document.getElementById('taskList');
+        container.innerHTML = '';
+        
+        tasks.sort((a,b) => a.time - b.time).forEach(task => {
+            const card = document.createElement('div');
+            card.className = `task-card ${task.done ? 'completed' : ''}`;
+            card.style.borderRightColor = task.type === 'عمل' ? 'var(--work-bg)' : (task.type === 'دراسة' ? 'var(--study-bg)' : 'var(--personal-bg)');
+            
+            card.innerHTML = `
+                <div class="task-content">
+                    <h3>${task.title}</h3>
+                    <span><i class="fa-regular fa-clock"></i> ${new Date(task.time).toLocaleString('ar-EG')}</span><br>
+                    <span class="category-badge" style="background:${getBg(task.type)}">${task.type}</span>
+                </div>
+                <div class="actions">
+                    <button class="btn-icon btn-done" onclick="toggleTask(${task.id})"><i class="fa-solid fa-check"></i></button>
+                    <button class="btn-icon btn-delete" onclick="deleteTask(${task.id})"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    function getBg(type) {
+        if(type === 'عمل') return 'var(--work-bg)';
+        if(type === 'دراسة') return 'var(--study-bg)';
+        return 'var(--personal-bg)';
+    }
+
+    // محرك التنبيهات (يعمل كل ثانية)
+    setInterval(() => {
+        const now = Date.now();
+        tasks.forEach(task => {
+            if(!task.done && !task.notified && now >= task.time) {
+                // تشغيل الصوت
+                const audio = new Audio(task.sound || 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+                audio.play();
+
+                // إرسال الإشعار لشاشة القفل
+                if (Notification.permission === "granted") {
+                    new Notification("تنبيه المهمة!", {
+                        body: task.title,
+                        icon: "https://cdn-icons-png.flaticon.com/512/906/906334.png"
+                    });
+                }
+                task.notified = true;
+            }
+        });
+    }, 1000);
+
+    function requestPermission() { Notification.requestPermission(); }
+    function toggleTask(id) { tasks = tasks.map(t => t.id === id ? {...t, done: !t.done} : t); render(); }
+    function deleteTask(id) { tasks = tasks.filter(t => t.id !== id); render(); }
+</script>
+
+</body>
+</html>
